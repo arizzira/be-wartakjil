@@ -5,9 +5,9 @@ const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 
-// Konfigurasi CORS yang lebih spesifik buat Vercel
+// Konfigurasi CORS supaya ga diblokir Vercel
 app.use(cors({
-  origin: '*', // Izinkan semua sementara, atau ganti dengan URL frontend lu
+  origin: '*', 
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -18,7 +18,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 
 app.get('/', (req, res) => res.send('🔥 API War Takjil Ready!'));
 
-// ENDPOINT VOTE YANG SUDAH DIPERBAIKI
+// ENDPOINT VOTE (Sudah diperbaiki agar balikin Array)
 app.post('/api/vote', async (req, res) => {
   const { team, count } = req.body;
 
@@ -27,7 +27,7 @@ app.post('/api/vote', async (req, res) => {
   }
 
   try {
-    // 1. Update skor di Supabase via RPC
+    // 1. Update skor di Supabase
     const { error: rpcError } = await supabase.rpc('update_score', { 
       team_arg: team, 
       points: count 
@@ -35,14 +35,14 @@ app.post('/api/vote', async (req, res) => {
 
     if (rpcError) throw rpcError;
 
-    // 2. Ambil semua data skor terbaru biar frontend bisa pake .find()
+    // 2. Ambil semua data skor terbaru (PENTING: Biar .find() di frontend jalan)
     const { data: updatedScores, error: fetchError } = await supabase
       .from('scores')
       .select('team_name, score');
 
     if (fetchError) throw fetchError;
 
-    // Balikin array data, bukan cuma pesan sukses!
+    // Balikin data dalam bentuk ARRAY
     return res.json(updatedScores);
   } catch (error) {
     console.error("Error pas vote:", error.message);
@@ -59,7 +59,7 @@ app.get('/api/scores', async (req, res) => {
   return res.json(data);
 });
 
-// Penting buat Vercel Serverless
+// Setting buat Vercel Serverless
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => console.log(`Server jalan di port ${PORT}`));

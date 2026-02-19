@@ -1,0 +1,8 @@
+# Abaikan folder node_modules (untuk project JS)
+node_modules/
+
+# Abaikan file environment yang berisi password/API key
+.env
+
+# Abaikan file log
+*.log

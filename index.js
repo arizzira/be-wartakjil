@@ -4,18 +4,21 @@ const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
+
+// Konfigurasi CORS yang lebih spesifik buat Vercel
 app.use(cors({
-  origin: '*' // Sementara pake bintang dulu biar ga ribet, nanti bisa diganti URL frontend
+  origin: '*', // Izinkan semua sementara, atau ganti dengan URL frontend lu
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
 
-// Koneksi ke Supabase
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 app.get('/', (req, res) => res.send('🔥 API War Takjil Ready!'));
 
-// Endpoint Update Skor - SEKARANG MENGEMBALIKAN DATA TERBARU
+// ENDPOINT VOTE YANG SUDAH DIPERBAIKI
 app.post('/api/vote', async (req, res) => {
   const { team, count } = req.body;
 
@@ -24,7 +27,7 @@ app.post('/api/vote', async (req, res) => {
   }
 
   try {
-    // 1. Panggil RPC untuk update skor
+    // 1. Update skor di Supabase via RPC
     const { error: rpcError } = await supabase.rpc('update_score', { 
       team_arg: team, 
       points: count 
@@ -32,14 +35,14 @@ app.post('/api/vote', async (req, res) => {
 
     if (rpcError) throw rpcError;
 
-    // 2. AMBIL DATA TERBARU LANGSUNG (Kunci biar ga jitter)
+    // 2. Ambil semua data skor terbaru biar frontend bisa pake .find()
     const { data: updatedScores, error: fetchError } = await supabase
       .from('scores')
       .select('team_name, score');
 
     if (fetchError) throw fetchError;
 
-    // 3. Kembalikan data skor terbaru ke frontend
+    // Balikin array data, bukan cuma pesan sukses!
     return res.json(updatedScores);
   } catch (error) {
     console.error("Error pas vote:", error.message);
@@ -47,7 +50,6 @@ app.post('/api/vote', async (req, res) => {
   }
 });
 
-// Endpoint Ambil Skor Terkini
 app.get('/api/scores', async (req, res) => {
   const { data, error } = await supabase
     .from('scores')
@@ -57,10 +59,10 @@ app.get('/api/scores', async (req, res) => {
   return res.json(data);
 });
 
+// Penting buat Vercel Serverless
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log(`Server lokal jalan di port ${PORT}`));
+  app.listen(PORT, () => console.log(`Server jalan di port ${PORT}`));
 }
 
-// WAJIB ADA INI buat Vercel:
 module.exports = app;

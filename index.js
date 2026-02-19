@@ -5,7 +5,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 
-// Konfigurasi CORS supaya diizinkan Vercel
+// Konfigurasi CORS agar diizinkan oleh Vercel
 app.use(cors({
   origin: '*', 
   methods: ['GET', 'POST', 'OPTIONS'],
@@ -18,12 +18,12 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 
 app.get('/', (req, res) => res.send('🔥 API War Takjil Ready!'));
 
-// ENDPOINT VOTE (Sudah diperbaiki biar balikin Array/Daftar)
+// ENDPOINT VOTE (Sudah diperbaiki agar mengembalikan Array)
 app.post('/api/vote', async (req, res) => {
   const { team, count } = req.body;
 
   if (!['muslim', 'nonis'].includes(team) || !count) {
-    return res.status(400).json({ error: 'Data ga valid bang' });
+    return res.status(400).json({ error: 'Data tidak valid' });
   }
 
   try {
@@ -35,30 +35,32 @@ app.post('/api/vote', async (req, res) => {
 
     if (rpcError) throw rpcError;
 
-    // 2. AMBIL DATA TERBARU (PENTING: Biar frontend dapet daftar skor lagi)
+    // 2. AMBIL ULANG SEMUA SKOR (PENTING: Agar frontend menerima ARRAY)
     const { data: updatedScores, error: fetchError } = await supabase
       .from('scores')
       .select('team_name, score');
 
     if (fetchError) throw fetchError;
 
-    // Balikin daftar skor (Array), bukan cuma pesan sukses!
+    // Mengembalikan ARRAY data terbaru
     return res.json(updatedScores);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
 });
 
+// Endpoint Ambil Skor
 app.get('/api/scores', async (req, res) => {
   const { data, error } = await supabase
     .from('scores')
     .select('team_name, score');
 
   if (error) return res.status(500).json({ error: error.message });
-  return res.json(data);
+  // Pastikan yang dikirim adalah array data
+  return res.json(data || []); 
 });
 
-// Setup khusus Vercel
+// WAJIB ADA UNTUK VERCEL
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => console.log(`Server jalan di port ${PORT}`));
